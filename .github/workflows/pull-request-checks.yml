@@ -1,0 +1,114 @@
+name: PR checks
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  godot-tests:
+    name: Godot 3.6.2 checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Restore Godot 3.6.2 tools
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ runner.temp }}/godot-3.6.2
+          key: godot-3.6.2-linux-ci-web-v1
+
+      - name: Download and verify Godot 3.6.2 tools
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          release_url="https://github.com/godotengine/godot/releases/download/3.6.2-stable"
+          tool_dir="$RUNNER_TEMP/godot-3.6.2"
+          mkdir -p "$tool_dir/templates"
+          cd "$tool_dir"
+
+          curl -fL --retry 3 "$release_url/SHA512-SUMS.txt" -o SHA512-SUMS.txt
+          curl -fL --retry 3 "$release_url/Godot_v3.6.2-stable_linux_headless.64.zip" -o Godot_v3.6.2-stable_linux_headless.64.zip
+          curl -fL --retry 3 "$release_url/Godot_v3.6.2-stable_linux_server.64.zip" -o Godot_v3.6.2-stable_linux_server.64.zip
+          curl -fL --retry 3 "$release_url/Godot_v3.6.2-stable_export_templates.tpz" -o Godot_v3.6.2-stable_export_templates.tpz
+
+          awk '$2 == "Godot_v3.6.2-stable_linux_headless.64.zip" || $2 == "Godot_v3.6.2-stable_linux_server.64.zip" || $2 == "Godot_v3.6.2-stable_export_templates.tpz"' SHA512-SUMS.txt > selected.sha512
+          test "$(wc -l < selected.sha512)" -eq 3
+          sha512sum --check selected.sha512
+
+          unzip -q Godot_v3.6.2-stable_linux_headless.64.zip
+          unzip -q Godot_v3.6.2-stable_linux_server.64.zip
+          unzip -q -j Godot_v3.6.2-stable_export_templates.tpz \
+            'templates/webassembly_debug.zip' \
+            'templates/webassembly_release.zip' \
+            -d templates
+          rm Godot_v3.6.2-stable_linux_headless.64.zip \
+            Godot_v3.6.2-stable_linux_server.64.zip \
+            Godot_v3.6.2-stable_export_templates.tpz
+
+      - name: Activate verified Godot 3.6.2 tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          tool_dir="$RUNNER_TEMP/godot-3.6.2"
+          template_dir="$HOME/.local/share/godot/templates/3.6.2.stable"
+          chmod +x "$tool_dir/Godot_v3.6.2-stable_linux_headless.64"
+          chmod +x "$tool_dir/Godot_v3.6.2-stable_linux_server.64"
+          mkdir -p "$template_dir"
+          cp "$tool_dir/templates/webassembly_debug.zip" "$template_dir/"
+          cp "$tool_dir/templates/webassembly_release.zip" "$template_dir/"
+          "$tool_dir/Godot_v3.6.2-stable_linux_headless.64" --version | grep -F '3.6.2.stable.official'
+          "$tool_dir/Godot_v3.6.2-stable_linux_server.64" --version | grep -F '3.6.2.stable.official'
+
+      - name: Import project
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="$RUNNER_TEMP/godot-import.log"
+          "$RUNNER_TEMP/godot-3.6.2/Godot_v3.6.2-stable_linux_headless.64" \
+            --path "PEASHOOTER RPG" \
+            --editor --quit 2>&1 | tee "$log_file"
+          ! grep -E 'SCRIPT ERROR:|Parse Error:' "$log_file"
+
+      - name: Export HTML5
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="$RUNNER_TEMP/godot-export.log"
+          mkdir -p build/web
+          "$RUNNER_TEMP/godot-3.6.2/Godot_v3.6.2-stable_linux_headless.64" \
+            --path "PEASHOOTER RPG" \
+            --export "Web" \
+            "$GITHUB_WORKSPACE/build/web/index.html" 2>&1 | tee "$log_file"
+          ! grep -E 'SCRIPT ERROR:|Parse Error:' "$log_file"
+          test -s build/web/index.html
+          test -s build/web/index.js
+          test -s build/web/index.wasm
+          test -s build/web/index.pck
+
+      - name: Run game smoke test
+        shell: bash
+        run: |
+          set -euo pipefail
+          log_file="$RUNNER_TEMP/godot-smoke.log"
+          "$RUNNER_TEMP/godot-3.6.2/Godot_v3.6.2-stable_linux_server.64" \
+            --path "PEASHOOTER RPG" \
+            --script "$GITHUB_WORKSPACE/.github/tests/smoke_test.gd" 2>&1 | tee "$log_file"
+          ! grep -E 'SCRIPT ERROR:|Parse Error:|SMOKE_FAIL:' "$log_file"
+          grep -F 'SMOKE_PASS: pantalla inicial cargada' "$log_file"
+          grep -F 'SMOKE_PASS: pantalla inicial pasó al menú' "$log_file"
+          grep -F 'SMOKE_PASS: botón Jugar abrió el mapa principal' "$log_file"
+          grep -F 'SMOKE_PASS: ejecución básica completada sin errores bloqueantes' "$log_file"
