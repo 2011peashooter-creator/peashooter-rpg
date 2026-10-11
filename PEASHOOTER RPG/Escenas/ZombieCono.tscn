@@ -1,0 +1,14 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://Escenas/Zombie.tscn" type="PackedScene" id=1]
+[ext_resource path="res://Carpeta de Assets/Assets PeaRPG/Screenshot_13-removebg-preview.png" type="Texture" id=2]
+
+[node name="Zombie" instance=ExtResource( 1 )]
+salud_maxima = 4
+
+[node name="Sprite" parent="." index="0"]
+scale = Vector2( 1.082, 1 )
+texture = ExtResource( 2 )
+
+[node name="CollisionShape2D" parent="AreaDeteccion" index="0"]
+scale = Vector2( 0.664748, 0.682938 )

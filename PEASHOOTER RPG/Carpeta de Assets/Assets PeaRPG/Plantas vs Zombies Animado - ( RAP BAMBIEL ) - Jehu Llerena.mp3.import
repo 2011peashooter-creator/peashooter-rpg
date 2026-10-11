@@ -1,0 +1,15 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+path="res://.import/Plantas vs Zombies Animado - ( RAP BAMBIEL ) - Jehu Llerena.mp3-92b8431203b64ce65399ed52f61e4f16.mp3str"
+
+[deps]
+
+source_file="res://Carpeta de Assets/Assets PeaRPG/Plantas vs Zombies Animado - ( RAP BAMBIEL ) - Jehu Llerena.mp3"
+dest_files=[ "res://.import/Plantas vs Zombies Animado - ( RAP BAMBIEL ) - Jehu Llerena.mp3-92b8431203b64ce65399ed52f61e4f16.mp3str" ]
+
+[params]
+
+loop=true
+loop_offset=0
