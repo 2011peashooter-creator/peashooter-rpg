@@ -22,6 +22,7 @@ var oleada_actual = 1
 var zombies_por_crear = 5
 var zombies_restantes_vivos = 0
 var en_receso = false
+var primer_zombie_atacante_asignado = false
 
 # ==========================================
 # 3. FUNCIONES PRINCIPALES (CICLO DE VIDA)
@@ -141,6 +142,10 @@ func seleccionar_y_generar_zombie():
 			escena_a_instanciar = ESCENA_ZOMBIE_NORMAL
 
 	var zombie_instancia = escena_a_instanciar.instance()
+
+	if not primer_zombie_atacante_asignado:
+		zombie_instancia.es_primer_atacante = true
+		primer_zombie_atacante_asignado = true
 	
 	var pos_x = rand_range(LIMITE_X_MIN, LIMITE_X_MAX)
 	var pos_y = rand_range(LIMITE_Y_MIN, LIMITE_Y_MAX)
