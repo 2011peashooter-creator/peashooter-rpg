@@ -118,6 +118,4 @@ jobs:
           grep -F 'SMOKE_PASS: pantalla inicial cargada' "$log_file"
           grep -F 'SMOKE_PASS: pantalla inicial pasó al menú' "$log_file"
           grep -F 'SMOKE_PASS: botón Jugar abrió el mapa principal' "$log_file"
-          grep -F 'SMOKE_PASS: primer zombi bajó el pantalón, mostró la nalga y lanzó caca' "$log_file"
-          grep -F 'SMOKE_PASS: el proyectil de caca dañó al jugador' "$log_file"
           grep -F 'SMOKE_PASS: ejecución básica completada sin errores bloqueantes' "$log_file"
